@@ -10,11 +10,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from collections.abc import Iterable
 import torch
-#from torch.autograd.gradcheck import zero_gradients
-def zero_gradients(i):
-        for t in iter_gradients(i):
-                    t.zero_()
 import time
 from .adversarialattack import AdversarialAttack
 
@@ -25,6 +22,18 @@ from .base import Attack
 from .base import LabelMixin'''
 
 DEFAULT_EPS_DICT_BY_NORM = {'Linf': .3, 'L2': 1., 'L1': 5.0}
+
+
+# from torch.autograd.gradcheck import zero_gradients
+# https://discuss.pytorch.org/t/from-torch-autograd-gradcheck-import-zero-gradients/127462
+def zero_gradients(x):
+    if isinstance(x, torch.Tensor):
+        if x.grad is not None:
+            x.grad.detach_()
+            x.grad.zero_()
+    elif isinstance(x, Iterable):
+        for elem in x:
+            zero_gradients(elem)
 
 
 class FABAttack(AdversarialAttack):
@@ -56,7 +65,7 @@ class FABAttack(AdversarialAttack):
             verbose=False):
         """ FAB-attack implementation in pytorch """
 
-        # super(FABAttack, self).__init__(predict, loss_fn=None, clip_min=0., clip_max=1.)
+        # super().__init__(predict, loss_fn=None, clip_min=0., clip_max=1.)
         self.predict = predict
         self.norm = norm
         self.n_restarts = n_restarts
@@ -100,7 +109,8 @@ class FABAttack(AdversarialAttack):
 
         g2 = torch.transpose(g2, 0, 1).detach()
         y2 = torch.stack(
-            [y.detach()[torch.arange(imgs.shape[0]), la], y.detach()[torch.arange(imgs.shape[0]), la_top2]], dim=1)
+            [y.detach()[torch.arange(imgs.shape[0]), la],
+             y.detach()[torch.arange(imgs.shape[0]), la_top2]], dim=1)
         df = y2 - y2[:, 0].unsqueeze(1)
         dg = g2 - g2[:, 0].unsqueeze(1)
         df[:, 0] = 1e10
@@ -177,7 +187,7 @@ class FABAttack(AdversarialAttack):
                               torch.zeros(sb[c2, lb].shape)
                               .to(self.device))).unsqueeze(-1)
         d[c2] = torch.min(lmbd_opt, d[c2]) * c5[c2] \
-                + torch.max(-lmbd_opt, d[c2]) * (1 - c5[c2])
+            + torch.max(-lmbd_opt, d[c2]) * (1 - c5[c2])
 
         return d * (w != 0).float()
 
@@ -370,7 +380,8 @@ class FABAttack(AdversarialAttack):
                                           ).reshape([-1, *[1] * self.ndims])
                                 ) * t / (t.reshape([t.shape[0], -1]).abs()
                                          .max(dim=1, keepdim=True)[0]
-                                         .reshape([-1, *[1] * self.ndims])) * .5
+                                         .reshape([-1,
+                                                   *[1] * self.ndims])) * .5
                 elif self.norm == 'L2':
                     t = torch.randn(x1.shape).to(self.device)
                     x1 = im2 + (torch.min(res2,
@@ -381,7 +392,8 @@ class FABAttack(AdversarialAttack):
                                          .view(t.shape[0], -1)
                                          .sum(dim=-1)
                                          .sqrt()
-                                         .view(t.shape[0], *[1] * self.ndims)) * .5
+                                         .view(t.shape[0],
+                                               *[1] * self.ndims)) * .5
                 elif self.norm == 'L1':
                     t = torch.randn(x1.shape).to(self.device)
                     x1 = im2 + (torch.min(res2,
@@ -390,7 +402,8 @@ class FABAttack(AdversarialAttack):
                                           ).reshape([-1, *[1] * self.ndims])
                                 ) * t / (t.abs().view(t.shape[0], -1)
                                          .sum(dim=-1)
-                                         .view(t.shape[0], *[1] * self.ndims)) / 2
+                                         .view(t.shape[0],
+                                               *[1] * self.ndims)) / 2
 
                 x1 = x1.clamp(0.0, 1.0)
 
@@ -470,12 +483,16 @@ class FABAttack(AdversarialAttack):
                         elif self.norm == 'L1':
                             t = (x1[ind_adv] - im2[ind_adv]) \
                                 .abs().view(ind_adv.shape[0], -1).sum(dim=-1)
-                        adv[ind_adv] = x1[ind_adv] * (t < res2[ind_adv]). \
-                            float().reshape([-1, *[1] * self.ndims]) + adv[ind_adv] \
-                                       * (t >= res2[ind_adv]).float().reshape(
+                        adv[ind_adv] = x1[ind_adv] * (t < res2[ind_adv]
+                                                      ).float().reshape(
+                                                          [-1,
+                                                           *[1] * self.ndims]
+                                            ) + adv[ind_adv] * (
+                                                t >= res2[ind_adv]
+                                            ).float().reshape(
                             [-1, *[1] * self.ndims])
-                        res2[ind_adv] = t * (t < res2[ind_adv]).float() \
-                                        + res2[ind_adv] * (t >= res2[ind_adv]).float()
+                        res2[ind_adv] = t * (t < res2[ind_adv]).float() + \
+                            res2[ind_adv] * (t >= res2[ind_adv]).float()
                         x1[ind_adv] = im2[ind_adv] + (
                                 x1[ind_adv] - im2[ind_adv]) * self.beta
 
@@ -530,9 +547,9 @@ class LinfFABAttack(FABAttack):
             verbose=False):
         norm = 'Linf'
         super(LinfFABAttack, self).__init__(
-            predict=predict, norm=norm, n_restarts=n_restarts,
-            n_iter=n_iter, eps=eps, alpha_max=alpha_max, eta=eta, beta=beta,
-            loss_fn=loss_fn, verbose=verbose)
+            predict=predict, norm=norm, n_restarts=n_restarts, n_iter=n_iter,
+            eps=eps, alpha_max=alpha_max, eta=eta, beta=beta, loss_fn=loss_fn,
+            verbose=verbose)
 
 
 class L2FABAttack(FABAttack):
@@ -562,9 +579,8 @@ class L2FABAttack(FABAttack):
             loss_fn=None):
         norm = 'L2'
         super(L2FABAttack, self).__init__(
-            predict=predict, norm=norm, n_restarts=n_restarts,
-            n_iter=n_iter, eps=eps, alpha_max=alpha_max, eta=eta, beta=beta,
-            loss_fn=loss_fn)
+            predict=predict, norm=norm, n_restarts=n_restarts, n_iter=n_iter,
+            eps=eps, alpha_max=alpha_max, eta=eta, beta=beta, loss_fn=loss_fn)
 
 
 class L1FABAttack(FABAttack):
@@ -594,6 +610,5 @@ class L1FABAttack(FABAttack):
             loss_fn=None):
         norm = 'L1'
         super(L1FABAttack, self).__init__(
-            predict=predict, norm=norm, n_restarts=n_restarts,
-            n_iter=n_iter, eps=eps, alpha_max=alpha_max, eta=eta, beta=beta,
-            loss_fn=loss_fn)
+            predict=predict, norm=norm, n_restarts=n_restarts, n_iter=n_iter,
+            eps=eps, alpha_max=alpha_max, eta=eta, beta=beta, loss_fn=loss_fn)

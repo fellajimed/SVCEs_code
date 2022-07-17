@@ -1,15 +1,17 @@
 import torch
-import math
 from torch.nn import Module
 from copy import deepcopy
 from torch.nn.modules.batchnorm import _BatchNorm
 
+
 class AveragedModel(Module):
     """
-    Modified AveragedModel from torch swa_utils that supports EMA and SWA updates and batch norm averaging
+    Modified AveragedModel from torch swa_utils that supports EMA and SWA
+    updates and batch norm averaging
     """
-    def __init__(self, model, avg_type='ema', ema_decay=0.990, avg_batchnorm=False, device=None):
-        super(AveragedModel, self).__init__()
+    def __init__(self, model, avg_type='ema', ema_decay=0.990,
+                 avg_batchnorm=False, device=None):
+        super().__init__()
         self.module = deepcopy(model)
         if device is not None:
             self.module = self.module.to(device)
@@ -27,15 +29,14 @@ class AveragedModel(Module):
     def update_parameters(self, model):
         n = self.n_averaged.item()
         if self.avg_type == 'ema':
-            decay = min(
-                self.ema_decay,
-                (1 + n) / (10 + n)
-            )
-            avg_fn = lambda averaged_model_parameter, model_parameter: \
-                decay * averaged_model_parameter + (1.0 - decay) * model_parameter
+            decay = min(self.ema_decay, (1 + n)/(10 + n))
+
+            def avg_fn(averaged_model_parameter, model_parameter):
+                return decay * averaged_model_parameter + \
+                    (1.0 - decay) * model_parameter
         elif self.avg_type == 'swa':
-            avg_fn = lambda averaged_model_parameter, model_parameter: \
-                (model_parameter - averaged_model_parameter) / (n + 1)
+            def avg_fn(averaged_model_parameter, model_parameter):
+                return (model_parameter - averaged_model_parameter) / (n + 1)
         else:
             raise NotImplementedError()
 
@@ -48,7 +49,8 @@ class AveragedModel(Module):
                 p_swa.detach().copy_(avg_fn(p_swa.detach(), p_model_,))
 
         if self.avg_batchnorm:
-            for avg_mod, model_mod in zip(self.module.modules(), model.modules()):
+            for avg_mod, model_mod in zip(self.module.modules(),
+                                          model.modules()):
                 if issubclass(type(model_mod), _BatchNorm):
                     device = avg_mod.running_mean.device
                     mean_model_ = model_mod.running_mean.detach().to(device)

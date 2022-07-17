@@ -1,14 +1,16 @@
 import torch
-import torch.nn.functional as F
-from utils.adversarial_attacks import PGD, MonotonePGD, APGDAttack, ArgminPGD, UniformNoiseGenerator,\
-    NormalNoiseGenerator, L2FABAttack, LinfFABAttack, CutoutPGD, AFWAttack
+from utils.adversarial_attacks import PGD, MonotonePGD, APGDAttack, \
+    ArgminPGD, UniformNoiseGenerator, NormalNoiseGenerator, L2FABAttack, \
+    LinfFABAttack, CutoutPGD, AFWAttack
 from utils.distances import LPDistance
 from torch.nn.modules.batchnorm import _BatchNorm
+
 
 #########
 def interleave_forward(model, batches, in_parallel=True):
     # interleave ref_data to preserve batch statistics on parallel computations
-    #batches are supposed to have a batch sizes that are multiples of the smallest one, eg 256 and 1024
+    # batches are supposed to have a batch sizes that are multiples of
+    # the smallest one, eg 256 and 1024
     if in_parallel:
         min_bs = min([batch.shape[0] for batch in batches])
 
@@ -29,7 +31,9 @@ def interleave_forward(model, batches, in_parallel=True):
         for i in range(len(batches)):
             batch_i_idcs = []
             for j in range(bs_factors[i].item()):
-                batch_i_idcs.append(torch.arange(idx, full_size[0], subdivisions, dtype=torch.long))
+                batch_i_idcs.append(torch.arange(idx, full_size[0],
+                                                 subdivisions,
+                                                 dtype=torch.long))
                 idx += 1
 
             batch_i_idcs_cat = torch.cat(batch_i_idcs)
@@ -56,20 +60,27 @@ def interleave_forward(model, batches, in_parallel=True):
         return batches_out
 
 
-def create_attack_config(eps, steps, stepsize, norm, momentum=0.9, pgd='pgd', normalize_gradient=False, noise=None):
+def create_attack_config(eps, steps, stepsize, norm, momentum=0.9,
+                         pgd='pgd', normalize_gradient=False, noise=None):
     if noise is None:
-        attack_config = {'eps': eps, 'steps': steps, 'stepsize': stepsize, 'norm': norm, 'momentum': momentum,
-                         'pgd': pgd,'normalize_gradient': normalize_gradient, 'noise': None}
+        attack_config = {'eps': eps, 'steps': steps, 'stepsize': stepsize,
+                         'norm': norm, 'momentum': momentum, 'pgd': pgd,
+                         'normalize_gradient': normalize_gradient,
+                         'noise': None}
     elif 'uniform' in noise:
         # format: uniform_sigma
         sigma = float(noise[8:])
-        attack_config = {'eps': eps, 'steps': steps, 'stepsize': stepsize, 'norm': norm, 'momentum': momentum,
-                         'pgd': pgd, 'normalize_gradient': normalize_gradient, 'noise': 'uniform', 'noise_sigma': sigma}
+        attack_config = {'eps': eps, 'steps': steps, 'stepsize': stepsize,
+                         'norm': norm, 'momentum': momentum, 'pgd': pgd,
+                         'normalize_gradient': normalize_gradient,
+                         'noise': 'uniform', 'noise_sigma': sigma}
     elif 'normal' in noise:
         # format: normal_sigma
         sigma = float(noise[7:])
-        attack_config = {'eps': eps, 'steps': steps, 'stepsize': stepsize, 'norm': norm, 'momentum': momentum,
-                         'pgd': pgd, 'normalize_gradient': normalize_gradient, 'noise': 'normal', 'noise_sigma': sigma}
+        attack_config = {'eps': eps, 'steps': steps, 'stepsize': stepsize,
+                         'norm': norm, 'momentum': momentum, 'pgd': pgd,
+                         'normalize_gradient': normalize_gradient,
+                         'noise': 'normal', 'noise_sigma': sigma}
     else:
         raise ValueError('Noise format not supported')
 
@@ -83,6 +94,7 @@ def get_epoch_specific_config(stages_end, stages_values, epoch):
             value = stage_values
             break
     return value
+
 
 def get_adversarial_attack(config, model, att_criterion, num_classes, epoch=0):
     if isinstance(config['steps'], tuple):
@@ -109,40 +121,52 @@ def get_adversarial_attack(config, model, att_criterion, num_classes, epoch=0):
 
     if config['pgd'] == 'monotone':
         adv_attack = MonotonePGD(eps, steps,
-                                 config['stepsize'],num_classes,
+                                 config['stepsize'], num_classes,
                                  momentum=config['momentum'],
                                  norm=config['norm'],
-                                 loss=att_criterion, normalize_grad=config['normalize_gradient'],
-                                 model= model, init_noise_generator=noise_generator)
+                                 loss=att_criterion,
+                                 normalize_grad=config['normalize_gradient'],
+                                 model=model,
+                                 init_noise_generator=noise_generator)
     elif config['pgd'] == 'pgd':
         adv_attack = PGD(eps, steps,
                          config['stepsize'], num_classes,
                          momentum=config['momentum'], norm=config['norm'],
-                         loss=att_criterion, normalize_grad=config['normalize_gradient'],
-                         model= model, init_noise_generator=noise_generator)
+                         loss=att_criterion,
+                         normalize_grad=config['normalize_gradient'],
+                         model=model,
+                         init_noise_generator=noise_generator)
     elif config['pgd'] == 'argmin':
         adv_attack = ArgminPGD(eps, steps,
                                config['stepsize'], num_classes,
-                               momentum=config['momentum'], norm=config['norm'],
-                               loss=att_criterion, normalize_grad=config['normalize_gradient'],
-                               model= model, init_noise_generator=noise_generator)
+                               momentum=config['momentum'],
+                               norm=config['norm'], loss=att_criterion,
+                               normalize_grad=config['normalize_gradient'],
+                               model=model,
+                               init_noise_generator=noise_generator)
     elif config['pgd'] == 'apgd':
-        adv_attack = APGDAttack(model, eps=eps, n_iter=steps, norm=config['norm'], loss=att_criterion)
+        adv_attack = APGDAttack(model, eps=eps, n_iter=steps,
+                                norm=config['norm'], loss=att_criterion)
     elif config['pgd'] == 'cutoutpgd':
         adv_attack = CutoutPGD(eps, steps,
                                config['stepsize'], num_classes,
-                               momentum=config['momentum'], norm=config['norm'],
-                               loss=att_criterion, normalize_grad=config['normalize_gradient'],
-                               model= model, init_noise_generator=noise_generator)
+                               momentum=config['momentum'],
+                               norm=config['norm'], loss=att_criterion,
+                               normalize_grad=config['normalize_gradient'],
+                               model=model,
+                               init_noise_generator=noise_generator)
     elif config['pgd'] == 'fab':
         if config['norm'] in ['inf', 'linf', 'Linf']:
-            adv_attack = LinfFABAttack( model, n_restarts=1, n_iter=steps, eps=eps)
+            adv_attack = LinfFABAttack(model, n_restarts=1,
+                                       n_iter=steps, eps=eps)
         elif config['norm'] in ['l2', 'L2']:
-            adv_attack = L2FABAttack( model, n_restarts=1, n_iter=steps, eps=eps)
+            adv_attack = L2FABAttack(model, n_restarts=1,
+                                     n_iter=steps, eps=eps)
         else:
             raise NotImplementedError('Norm not supported')
     elif config['pgd'] == 'afw':
-        adv_attack = AFWAttack(model, num_classes, eps, n_iter=steps, norm=config['norm'], loss=att_criterion)
+        adv_attack = AFWAttack(model, num_classes, eps, n_iter=steps,
+                               norm=config['norm'], loss=att_criterion)
     else:
         raise ValueError('PGD {} not supported'.format(config['pgd']))
     return adv_attack
@@ -160,7 +184,7 @@ def get_distance(norm):
             else:
                 p = float(norm)
             distance = LPDistance(p=p)
-        except Exception as e:
+        except Exception:
             raise NotImplementedError('Norm not supported')
 
     return distance
@@ -174,9 +198,11 @@ def disable_running_stats(model):
 
     model.apply(_disable)
 
+
 def enable_running_stats(model):
     def _enable(module):
-        if issubclass(type(module), _BatchNorm) and hasattr(module, "backup_momentum"):
+        if issubclass(type(module), _BatchNorm) and \
+                hasattr(module, "backup_momentum"):
             module.momentum = module.backup_momentum
 
     model.apply(_enable)

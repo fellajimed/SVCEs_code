@@ -80,7 +80,8 @@ def id_radius_confidence(model_descriptions, radii, plot_radii, dataloader, bs, 
             datapoint_idx += adv_samples.shape[0]
 
         model_radii_confs[model_idx, :, 0] = torch.mean(gt_confidences, dim=1)
-        model_radii_confs[model_idx, :, 1] = torch.mean(others_confidences, dim=1)
+        model_radii_confs[model_idx, :, 1] = torch.mean(others_confidences,
+                                                        dim=1)
 
         print(f'{folder}')
         print(f'GT: {model_radii_confs[model_idx, :, 0]}')
@@ -94,7 +95,8 @@ def id_radius_confidence(model_descriptions, radii, plot_radii, dataloader, bs, 
         for img_idx in range(datapoints):
             scale_factor = 1.5
             fig, axs = plt.subplots(1, num_radii_to_plot,
-                                    figsize=(scale_factor * num_radii_to_plot, 1.3 * scale_factor))
+                                    figsize=(scale_factor * num_radii_to_plot,
+                                             1.3 * scale_factor))
 
             col_idx = 0
             for radius_idx in range(len(radii)):
@@ -111,18 +113,20 @@ def id_radius_confidence(model_descriptions, radii, plot_radii, dataloader, bs, 
             fig.savefig(f'{dir}img_{img_idx}.pdf')
             plt.close(fig)
 
-        #animated gif parts
+        # animated gif parts
         rows = int(np.sqrt(bs))
         cols = int(np.ceil(bs / rows))
         scale_factor = 4
 
         for radius_idx, radius in enumerate(radii):
-            fig, axs = plt.subplots(rows, cols, figsize=(scale_factor * cols, scale_factor * rows))
+            fig, axs = plt.subplots(rows, cols,
+                                    figsize=(scale_factor * cols,
+                                             scale_factor * rows))
             for img_idx in range(data.shape[0]):
                 row_idx = int(img_idx / cols)
                 col_idx = int(img_idx % cols)
 
-                img_cpu = imgs[radius_idx,img_idx,:].permute(1,2,0)
+                img_cpu = imgs[radius_idx, img_idx, :].permute(1, 2, 0)
 
                 axs[row_idx, col_idx].axis('off')
                 axs[row_idx, col_idx].imshow(img_cpu)

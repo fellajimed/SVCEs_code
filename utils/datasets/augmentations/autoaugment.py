@@ -154,7 +154,6 @@ class SVHNPolicy(object):
             SubPolicy(0.7, "shearX", 2, 0.1, "invert", 5, fillcolor)
         ]
 
-
     def __call__(self, img):
         policy_idx = random.randint(0, len(self.policies) - 1)
         return self.policies[policy_idx](img)
@@ -164,7 +163,9 @@ class SVHNPolicy(object):
 
 
 class SubPolicy(object):
-    def __init__(self, p1, operation1, magnitude_idx1, p2, operation2, magnitude_idx2, fillcolor=(128, 128, 128), magnitude_factor=1):
+    def __init__(self, p1, operation1, magnitude_idx1, p2, operation2,
+                 magnitude_idx2, fillcolor=(128, 128, 128),
+                 magnitude_factor=1):
         ranges = {
             "shearX": np.linspace(0, 0.3, 10),
             "shearY": np.linspace(0, 0.3, 10),
@@ -185,17 +186,23 @@ class SubPolicy(object):
         # from https://stackoverflow.com/questions/5252170/specify-image-filling-color-when-rotating-in-python-with-pil-and-setting-expand
         def rotate_with_fill(img, magnitude):
             rot = img.convert("RGBA").rotate(magnitude)
-            return Image.composite(rot, Image.new("RGBA", rot.size, (128,) * 4), rot).convert(img.mode)
+            return Image.composite(rot, Image.new("RGBA",
+                                                  rot.size, (128,) * 4),
+                                   rot).convert(img.mode)
 
         func = {
             "shearX": lambda img, magnitude: img.transform(
-                img.size, Image.AFFINE, (1, magnitude * random.choice([-1, 1]), 0, 0, 1, 0),
+                img.size, Image.AFFINE,
+                (1, magnitude * random.choice([-1, 1]), 0, 0, 1, 0),
                 Image.BICUBIC, fillcolor=fillcolor),
             "shearY": lambda img, magnitude: img.transform(
-                img.size, Image.AFFINE, (1, 0, 0, magnitude * random.choice([-1, 1]), 1, 0),
+                img.size, Image.AFFINE,
+                (1, 0, 0, magnitude * random.choice([-1, 1]), 1, 0),
                 Image.BICUBIC, fillcolor=fillcolor),
             "translateX": lambda img, magnitude: img.transform(
-                img.size, Image.AFFINE, (1, 0, magnitude * img.size[0] * random.choice([-1, 1]), 0, 1, 0),
+                img.size, Image.AFFINE,
+                (1, 0, magnitude * img.size[0] * random.choice([-1, 1]),
+                 0, 1, 0),
                 fillcolor=fillcolor),
             "translateY": lambda img, magnitude: img.transform(
                 img.size, Image.AFFINE, (1, 0, 0, 0, 1, magnitude * img.size[1] * random.choice([-1, 1])),

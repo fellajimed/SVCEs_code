@@ -10,15 +10,16 @@ import math
 
 from .adversarialattack import AdversarialAttack
 
+
 def float_(x):
     try:
-       return float(x)
-    except:
+        return float(x)
+    except Exception:
         return x
 
 
 def maxlin(x_orig, w_orig, eps, p, verbose=False):
-    ''' solves the optimization problem, for x in [0, 1]^d and p > 1,
+    r''' solves the optimization problem, for x in [0, 1]^d and p > 1,
     max <w, delta> s.th. ||delta||_p <= eps, x + delta \in [0, 1]^d
     '''
     bs = x_orig.shape[0]
@@ -65,22 +66,26 @@ def maxlin(x_orig, w_orig, eps, p, verbose=False):
         indnew = fs[u, a] > 0.  # - 1e-6
         lb[indnew] = a[indnew].clone()
         ub[~indnew] = a[~indnew].clone()
-    pmstar = wcum[u, lb - 1] / (eps ** p - gammacum[u, lb]).clip(small_const)  # wcum[u, lb]
+    pmstar = wcum[u, lb - 1] / (eps ** p - gammacum[u, lb]
+                                ).clip(small_const)  # wcum[u, lb]
     if verbose:
         print('pmstar is nan', pmstar.isnan().any())
         print('pmstar pow has nan', (pmstar ** (1 / p)).isnan().any())
         '''ind_test = (pmstar ** (1 / p)).view(-1) != (pmstar ** (1 / p)).view(-1)
-        print(ind_test, 1 / p, '\n', pmstar.view(-1)[ind_test], '\n', (pmstar ** (1 / p)).view(-1)[ind_test])
+        print(ind_test, 1 / p, '\n', pmstar.view(-1)[ind_test], '\n',
+        (pmstar ** (1 / p)).view(-1)[ind_test])
         print(pmstar, pmstar.shape)
         print(pmstar ** (1 / p))'''
-    deltamax = w ** (1 / (p - 1)) / pmstar.unsqueeze(1) ** (1 / p)  # ** (1 / (p - 1))
+    # ** (1 / (p - 1))
+    deltamax = w ** (1 / (p - 1)) / pmstar.unsqueeze(1) ** (1 / p)
     if verbose:
         print('deltamax is nan', deltamax.isnan().any())
     delta[ind] = torch.min(delta[ind],  # deltamax[ind].unsqueeze(1
                            # ) * torch.ones_like(delta[ind])
                            deltamax[ind])
-    #res = delta.view(bs, -1).norm(p=p, dim=1)[ind]
+    # res = delta.view(bs, -1).norm(p=p, dim=1)[ind]
     return delta.view(w_orig.shape) * w_orig.sign()
+
 
 class AFWAttack(AdversarialAttack):
     """
@@ -140,14 +145,14 @@ class AFWAttack(AdversarialAttack):
             self.p = float(norm)
 
     def init_hyperparam(self, x):
-        assert not self.eps is None
+        assert self.eps is not None
 
         self.orig_dim = list(x.shape[1:])
         self.ndims = len(self.orig_dim)
         if self.seed is None:
             self.seed = time.time()
 
-        ### set parameters for checkpoints
+        # set parameters for checkpoints
         self.n_iter_2 = max(int(0.22 * self.n_iter), 1)
         self.n_iter_min = max(int(0.06 * self.n_iter), 1)
         self.size_decr = max(int(0.03 * self.n_iter), 1)
@@ -161,7 +166,6 @@ class AFWAttack(AdversarialAttack):
 
     def check_shape(self, x):
         return x if len(x.shape) > 0 else x.unsqueeze(0)
-   #
 
     def attack_single_run(self, x, y, targeted=False):
         if len(x.shape) < self.ndims:
@@ -170,7 +174,7 @@ class AFWAttack(AdversarialAttack):
 
         device = x.device
 
-        #init
+        # init
         w_randn = torch.randn(x.shape).to(device).detach()
         x_adv = x + maxlin(x, w_randn, self.eps, self.p)
 
@@ -184,8 +188,10 @@ class AFWAttack(AdversarialAttack):
         acc_steps = torch.zeros_like(loss_best_steps)
 
         minus_criterion_indiv = self._get_loss_f(x, y, targeted, 'none')
-        #my adv attacks all use a loss that takes the current perturbed datapoint and the model out at that point
-        #apgd maximizes, so give a minus
+        # my adv attacks all use a loss that takes the current perturbed
+        # datapoint and the model out at that point
+        # apgd maximizes, so give a minus
+
         def criterion_indiv(adv_data, adv_data_out):
             return -minus_criterion_indiv(adv_data, adv_data_out)
 
@@ -206,11 +212,11 @@ class AFWAttack(AdversarialAttack):
         acc_steps[0] = acc + 0
         loss_best = loss_indiv.detach().clone()
 
-
         alpha = 0.75  # 0.75
-        #print('Using fw, alpha is', alpha)
+        # print('Using fw, alpha is', alpha)
 
-        step_size = alpha * torch.ones([x.shape[0], *([1] * self.ndims)]).to(device).detach()
+        step_size = alpha * torch.ones(
+            [x.shape[0], *([1] * self.ndims)]).to(device).detach()
         k = self.n_iter_2 + 0
         counter3 = 0
 
@@ -218,20 +224,21 @@ class AFWAttack(AdversarialAttack):
         reduced_last_check = torch.ones_like(loss_best)
         m_fw = 0
         for i in range(self.n_iter):
-            ### gradient step
+            # gradient step
             with torch.no_grad():
                 x_adv = x_adv.detach()
 
-                #print('Using fw mode, stepsize is', step_size)
-                #print('Momentum fw is', self.fw_momentum)
+                # print('Using fw mode, stepsize is', step_size)
+                # print('Momentum fw is', self.fw_momentum)
                 if i == 0:
                     m_fw = grad
                 else:
-                    m_fw = self.fw_momentum * m_fw + (1 - self.fw_momentum)*grad
+                    m_fw = self.fw_momentum * m_fw + \
+                        (1 - self.fw_momentum)*grad
                 v = x + maxlin(x, m_fw, self.eps, self.p)
                 x_adv = x_adv + step_size * (v - x_adv)
 
-            ### get gradient
+            # get gradient
             x_adv.requires_grad_()
             grad = torch.zeros_like(x)
             for _ in range(self.eot_iter):
@@ -242,12 +249,12 @@ class AFWAttack(AdversarialAttack):
 
                 grad += torch.autograd.grad(loss, [x_adv])[0].detach()
             if self.verbose:
-                print('grad norms', grad.view(x_adv.shape[0], -1).norm(p=2, dim=1))
+                print('grad norms',
+                      grad.view(x_adv.shape[0], -1).norm(p=2, dim=1))
                 print('targets', y)
-                print('confidences', i, logits.detach().softmax(1).gather(1, y.reshape(-1, 1)))
+                print('confidences', i,
+                      logits.detach().softmax(1).gather(1, y.reshape(-1, 1)))
                 print('loss best', loss_best)
-
-
 
             grad /= float(self.eot_iter)
 
@@ -257,7 +264,7 @@ class AFWAttack(AdversarialAttack):
             ind_pred = (pred == 0).nonzero(as_tuple=False).squeeze()
             x_best_adv[ind_pred] = x_adv[ind_pred] + 0.
 
-            ### check step size
+            # check step size
             with torch.no_grad():
                 y1 = loss_indiv.detach().clone()
                 loss_steps[i] = y1 + 0
@@ -271,7 +278,8 @@ class AFWAttack(AdversarialAttack):
 
                 if counter3 == k:
                     fl_oscillation = self.check_oscillation(loss_steps, i, k,
-                                                            loss_best, k3=self.thr_decr)
+                                                            loss_best,
+                                                            k3=self.thr_decr)
                     fl_reduce_no_impr = (1. - reduced_last_check) * (
                             loss_best_last_check >= loss_best).float()
                     fl_oscillation = torch.max(fl_oscillation,
@@ -280,9 +288,10 @@ class AFWAttack(AdversarialAttack):
                     loss_best_last_check = loss_best.clone()
 
                     if fl_oscillation.sum() > 0:
-                        ind_fl_osc = (fl_oscillation > 0).nonzero(as_tuple=False).squeeze()
+                        ind_fl_osc = (fl_oscillation > 0
+                                      ).nonzero(as_tuple=False).squeeze()
                         step_size[ind_fl_osc] /= 2.0
-                        n_reduced = fl_oscillation.sum()
+                        # n_reduced = fl_oscillation.sum()
 
                         x_adv[ind_fl_osc] = x_best[ind_fl_osc].clone()
                         grad[ind_fl_osc] = grad_best[ind_fl_osc].clone()
@@ -302,12 +311,13 @@ class AFWAttack(AdversarialAttack):
         loss_best = torch.ones([x.shape[0]]).to(x.device) * (-float('inf'))
         for counter in range(self.n_restarts):
             best_curr, loss_curr = self.attack_single_run(x, y, targeted)
-            ind_curr = (loss_curr > loss_best).nonzero(as_tuple=False).squeeze()
+            ind_curr = (loss_curr > loss_best
+                        ).nonzero(as_tuple=False).squeeze()
             adv_best[ind_curr] = best_curr[ind_curr] + 0.
             loss_best[ind_curr] = loss_curr[ind_curr] + 0.
 
             if self.verbose:
-                print('restart {} - loss: {:.5f}'.format(counter, loss_best.sum()))
+                print(f'restart {counter} - loss: {loss_best.sum():.5f}')
 
         if is_train:
             self.model.train()
@@ -315,5 +325,3 @@ class AFWAttack(AdversarialAttack):
             self.model.eval()
 
         return adv_best
-
-

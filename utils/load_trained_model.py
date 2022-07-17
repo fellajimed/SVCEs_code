@@ -1,18 +1,16 @@
 import torch
 import os
 
-from utils.models.models_32x32.resnet import ResNet18, ResNet34, ResNet50
-from utils.models.models_32x32.wideresnet_carmon import WideResNet as WideResNetCarmon
+from utils.models.models_32x32.resnet import ResNet50
+from utils.models.models_32x32.wideresnet_carmon import WideResNet \
+    as WideResNetCarmon
 from utils.models.model_factory_32 import build_model as build_model32
 from utils.models.model_factory_224 import build_model as build_model224
-from torchvision import models
-import torch.nn as nn
 from torchvision import models as torch_models
 
-from utils.model_normalization import Cifar10Wrapper, Cifar100Wrapper, SVHNWrapper,\
-    ImageNetWrapper, RestrictedImageNetWrapper, BigTransferWrapper
-#from utils.temperature_wrapper import TemperatureWrapper
-import utils.models.ebm_wrn as wrn
+from utils.model_normalization import Cifar10Wrapper, Cifar100Wrapper, \
+    SVHNWrapper, ImageNetWrapper, RestrictedImageNetWrapper,\
+    BigTransferWrapper
 from utils.models.big_transfer_factory import build_model_big_transfer
 from utils.datasets.paths import get_CIFAR10_path, get_imagenet_path
 
@@ -34,8 +32,10 @@ def load_non_native_model(type, folder, device):
                 return output
 
         if type == 'MadryRestrictedImageNet50':
-            dataset = datasets.DATASETS['restricted_imagenet'](get_imagenet_path())
-            resume_path = f'RestrictedImageNetModels/MadryModels/ResNet50/{folder}.pt'
+            dataset = datasets.DATASETS['restricted_imagenet'](
+                get_imagenet_path())
+            resume_path = 'RestrictedImageNetModels/MadryModels/' + \
+                f'ResNet50/{folder}.pt'
         elif type == 'MadryImageNet50':
             dataset = datasets.DATASETS['imagenet'](get_imagenet_path())
             resume_path = f'ImageNetModels/MadryModels/ResNet50/{folder}.pt'
@@ -49,10 +49,9 @@ def load_non_native_model(type, folder, device):
             'arch': 'resnet50',
             'dataset': dataset,
             'resume_path': resume_path,
-            'parallel' : False
+            'parallel': False
         }
         model_madry, _ = model_utils.make_and_restore_model(**model_kwargs)
-
         model = MadryWrapper(model_madry.model, model_madry.normalizer)
         model.to(device)
         model.eval()
@@ -75,9 +74,10 @@ def load_non_native_model(type, folder, device):
         model = WideResNetCarmon(num_classes=10, depth=28, widen_factor=10)
         state_dict_file = f'Cifar10Models/{folder}.pt'
         checkpoint = torch.load(state_dict_file, map_location=device)
-        state_dict = checkpoint.get('state_dict', checkpoint )
-        num_classes = checkpoint.get('num_classes', 10)
-        normalize_input = checkpoint.get('normalize_input', False)
+        state_dict = checkpoint.get('state_dict', checkpoint)
+        # num_classes = checkpoint.get('num_classes', 10)
+        # normalize_input = checkpoint.get('normalize_input', False)
+
         def strip_data_parallel(s):
             if s.startswith('module'):
                 return s[len('module.'):]
@@ -99,39 +99,59 @@ def get_filename(folder, architecture_folder, checkpoint, load_temp):
     else:
         load_folder_name = f'{folder}'
 
-    if not  checkpoint.isnumeric():
-        state_dict_file = f'{architecture_folder}/{load_folder_name}/{checkpoint}.pth'
+    if not checkpoint.isnumeric():
+        state_dict_file = f'{architecture_folder}/{load_folder_name}/' + \
+            f'{checkpoint}.pth'
     else:
         epoch = int(checkpoint)
-        state_dict_file = f'{architecture_folder}/{load_folder_name}/checkpoints/{epoch}.pth'
+        state_dict_file = f'{architecture_folder}/{load_folder_name}/' + \
+            f'checkpoints/{epoch}.pth'
     return state_dict_file
 
 
-non_native_model = ['PytorchResNet50', 'Madry50', 'TRADESReference', 'MadryRestrictedImageNet50', 'MadryImageNet50', 'Carmon']
+non_native_model = ['PytorchResNet50', 'Madry50', 'TRADESReference',
+                    'MadryRestrictedImageNet50', 'MadryImageNet50', 'Carmon']
 
-def load_cifar_family_model(type, folder, checkpoint, device, dataset_dir, num_classes, load_temp=False, model_params=None):
-    model, model_folder_post, _, img_size = build_model32(type, num_classes, model_params=model_params)
-    state_dict_file = get_filename(folder, os.path.join(dataset_dir, model_folder_post), checkpoint, load_temp)
+
+def load_cifar_family_model(type, folder, checkpoint, device, dataset_dir,
+                            num_classes, load_temp=False, model_params=None):
+    model, model_folder_post, _, img_size = build_model32(
+        type, num_classes, model_params=model_params)
+    state_dict_file = get_filename(
+        folder, os.path.join(dataset_dir, model_folder_post),
+        checkpoint, load_temp)
     state_dict = torch.load(state_dict_file, map_location=device)
     model.load_state_dict(state_dict)
     return model
 
-def load_big_transfer_model(type, folder, checkpoint, device, dataset_dir, num_classes, load_temp=False, model_params=None):
+
+def load_big_transfer_model(type, folder, checkpoint, device, dataset_dir,
+                            num_classes, load_temp=False, model_params=None):
     model, model_folder_post = build_model_big_transfer(type, num_classes)
-    state_dict_file = get_filename(folder, os.path.join(dataset_dir, model_folder_post), checkpoint, load_temp)
+    state_dict_file = get_filename(
+        folder, os.path.join(dataset_dir, model_folder_post),
+        checkpoint, load_temp)
     state_dict = torch.load(state_dict_file, map_location=device)
     model.load_state_dict(state_dict)
     return model
 
-def load_imagenet_family_model(type, folder, checkpoint, device, dataset_dir, num_classes, load_temp=False, model_params=None):
-    model, model_folder_post, _ = build_model224(type, num_classes, **model_params)
-    state_dict_file = get_filename(folder, f'{dataset_dir}/{model_folder_post}', checkpoint, load_temp)
+
+def load_imagenet_family_model(type, folder, checkpoint, device,
+                               dataset_dir, num_classes,
+                               load_temp=False, model_params=None):
+    model, model_folder_post, _ = build_model224(
+        type, num_classes, **model_params)
+    state_dict_file = get_filename(folder,
+                                   f'{dataset_dir}/{model_folder_post}',
+                                   checkpoint, load_temp)
     state_dict = torch.load(state_dict_file, map_location=device)
     model.load_state_dict(state_dict)
 
     return model
 
-def load_model(type, folder, checkpoint, temperature, device, dataset='cifar10', load_temp=False,  model_params=None):
+
+def load_model(type, folder, checkpoint, temperature, device,
+               dataset='cifar10', load_temp=False,  model_params=None):
     dataset = dataset.lower()
     if dataset == 'cifar10':
         dataset_dir = 'Cifar10Models'
@@ -150,7 +170,6 @@ def load_model(type, folder, checkpoint, temperature, device, dataset='cifar10',
         num_classes = 200
         model_family = 'ImageNet224'
     elif dataset == 'restrictedimagenet':
-        #dataset_dir = 'RestrictedImageNetModels'
         dataset_dir = 'RestrictedImageNetModels'
         num_classes = 9
         model_family = 'ImageNet224'
@@ -187,20 +206,24 @@ def load_model(type, folder, checkpoint, temperature, device, dataset='cifar10',
 
     if type in non_native_model:
         model = load_non_native_model(type, folder, device)
-        #if temperature is not None:
-        #    model = TemperatureWrapper(model, temperature)
+        # if temperature is not None:
+        #     model = TemperatureWrapper(model, temperature)
         return model
 
     if 'BiT' in type:
-        model = load_big_transfer_model(type, folder, checkpoint, device, dataset_dir, num_classes, load_temp=load_temp)
+        model = load_big_transfer_model(
+            type, folder, checkpoint, device, dataset_dir, num_classes,
+            load_temp=load_temp)
         model = BigTransferWrapper(model)
     else:
         if model_family == 'Cifar32':
-            model = load_cifar_family_model(type, folder, checkpoint, device, dataset_dir, num_classes,
-                                            load_temp=load_temp, model_params=model_params)
+            model = load_cifar_family_model(
+                type, folder, checkpoint, device, dataset_dir, num_classes,
+                load_temp=load_temp, model_params=model_params)
         elif model_family == 'ImageNet224':
-            model = load_imagenet_family_model(type, folder, checkpoint, device, dataset_dir, num_classes,
-                                               load_temp=load_temp, model_params=model_params)
+            model = load_imagenet_family_model(
+                type, folder, checkpoint, device, dataset_dir, num_classes,
+                load_temp=load_temp, model_params=model_params)
         else:
             raise ValueError()
 
@@ -233,8 +256,8 @@ def load_model(type, folder, checkpoint, temperature, device, dataset='cifar10',
 
     model.to(device)
 
-    #if temperature is not None:
-    #    model = TemperatureWrapper(model, temperature)
+    # if temperature is not None:
+    #     model = TemperatureWrapper(model, temperature)
 
     model.eval()
     return model
