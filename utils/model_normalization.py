@@ -50,6 +50,12 @@ def SVHNWrapper(model):
     return NormalizationWrapper(model, mean, std)
 
 
+def MNISTWrapper(model):
+    mean = torch.tensor([0.1307])
+    std = torch.tensor([0.3081])
+    return NormalizationWrapper(model, mean, std)
+
+
 def CelebAWrapper(model):
     mean = torch.tensor([0.5063, 0.4258, 0.3832])
     std = torch.tensor([0.2632, 0.2424, 0.2385])

@@ -9,7 +9,7 @@ from utils.models.model_factory_224 import build_model as build_model224
 from torchvision import models as torch_models
 
 from utils.model_normalization import Cifar10Wrapper, Cifar100Wrapper, \
-    SVHNWrapper, ImageNetWrapper, RestrictedImageNetWrapper,\
+    SVHNWrapper, MNISTWrapper, ImageNetWrapper, RestrictedImageNetWrapper,\
     BigTransferWrapper
 from utils.models.big_transfer_factory import build_model_big_transfer
 from utils.datasets.paths import get_CIFAR10_path, get_imagenet_path
@@ -114,9 +114,10 @@ non_native_model = ['PytorchResNet50', 'Madry50', 'TRADESReference',
 
 
 def load_cifar_family_model(type, folder, checkpoint, device, dataset_dir,
-                            num_classes, load_temp=False, model_params=None):
+                            num_classes, load_temp=False,
+                            model_params=None, is_rgb=True):
     model, model_folder_post, _, img_size = build_model32(
-        type, num_classes, model_params=model_params)
+        type, num_classes, model_params=model_params, is_rgb=is_rgb)
     state_dict_file = get_filename(
         folder, os.path.join(dataset_dir, model_folder_post),
         checkpoint, load_temp)
@@ -152,6 +153,7 @@ def load_imagenet_family_model(type, folder, checkpoint, device,
 
 def load_model(type, folder, checkpoint, temperature, device,
                dataset='cifar10', load_temp=False,  model_params=None):
+    is_rgb = True
     dataset = dataset.lower()
     if dataset == 'cifar10':
         dataset_dir = 'Cifar10Models'
@@ -165,6 +167,11 @@ def load_model(type, folder, checkpoint, temperature, device,
         dataset_dir = 'SVHNModels'
         num_classes = 10
         model_family = 'Cifar32'
+    elif dataset == 'mnist':
+        dataset_dir = 'MNISTModels'
+        num_classes = 10
+        model_family = 'MNIST'
+        is_rgb = False
     elif dataset == 'tinyImageNet':
         dataset_dir = 'TinyImageNetModels'
         num_classes = 200
@@ -216,7 +223,7 @@ def load_model(type, folder, checkpoint, temperature, device,
             load_temp=load_temp)
         model = BigTransferWrapper(model)
     else:
-        if model_family == 'Cifar32':
+        if model_family == 'Cifar32' or model_family == 'MNIST':
             model = load_cifar_family_model(
                 type, folder, checkpoint, device, dataset_dir, num_classes,
                 load_temp=load_temp, model_params=model_params)
@@ -233,6 +240,8 @@ def load_model(type, folder, checkpoint, temperature, device,
             model = Cifar100Wrapper(model)
         elif dataset == 'svhn':
             model = SVHNWrapper(model)
+        elif dataset == 'mnist':
+            model = MNISTWrapper(model)
         elif dataset == 'tinyimagenet':
             model = Cifar100Wrapper(model)
         elif dataset == 'imagenet':
