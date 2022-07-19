@@ -1,5 +1,6 @@
 import torch
 import os
+from pathlib import Path
 
 from utils.models.models_32x32.resnet import ResNet50
 from utils.models.models_32x32.wideresnet_carmon import WideResNet \
@@ -118,9 +119,10 @@ def load_cifar_family_model(type, folder, checkpoint, device, dataset_dir,
                             model_params=None, is_rgb=True):
     model, model_folder_post, _, img_size = build_model32(
         type, num_classes, model_params=model_params, is_rgb=is_rgb)
-    state_dict_file = get_filename(
-        folder, os.path.join(dataset_dir, model_folder_post),
-        checkpoint, load_temp)
+    # state_dict_file = get_filename(
+    #     folder, os.path.join(dataset_dir, model_folder_post),
+    #     checkpoint, load_temp)
+    state_dict_file = Path(folder) / f'{checkpoint}.pth'
     state_dict = torch.load(state_dict_file, map_location=device)
     model.load_state_dict(state_dict)
     return model
