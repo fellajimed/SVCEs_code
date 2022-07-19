@@ -356,7 +356,7 @@ def _inner_generation(original_imgs, perturbation_targets,
 
                     for target_idx in range(num_targets):
                         batch_targets_i = batch_targets[:, target_idx]
-                        if verbose:
+                        if verbose and filenames is not None:
                             print('filename is', filenames[target_idx])
                         # use -1 as invalid index
                         valid_batch_targets = batch_targets_i != -1
@@ -383,8 +383,9 @@ def _inner_generation(original_imgs, perturbation_targets,
                             batch_probs_i = \
                                 torch.softmax(batch_model_out_i, dim=1)
                             if verbose:
-                                print('filename is', filenames[target_idx],
-                                      eps)
+                                if filenames is not None:
+                                    print('filename is', filenames[target_idx],
+                                          eps)
                                 # batch_targets_i[valid_batch_targets])
                                 print('batch targets are',
                                       batch_targets_i[valid_batch_targets])
