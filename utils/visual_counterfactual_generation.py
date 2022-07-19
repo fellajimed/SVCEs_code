@@ -52,6 +52,7 @@ def _prepare_targeted_translations(model_descriptions, imgs, target_list,
     all_models_original_probabilities = probabilities
 
     max_num_targets = max([len(T) for T in target_list])
+
     perturbation_targets = torch.empty((num_datapoints, max_num_targets),
                                        dtype=torch.long).fill_(-1)
     for i in range(num_datapoints):
@@ -164,7 +165,7 @@ def _plot_diff_image(a, b, filepath):
 
 
 def _plot_single_img(torch_img, filepath):
-    pil_img = Image.fromarray(np.uint8(torch_img.numpy() * 255.))
+    pil_img = Image.fromarray(np.uint8(torch_img.squeeze().numpy() * 255.))
     pil_img.save(filepath)
 
 
