@@ -226,7 +226,7 @@ def load_model(type, folder, checkpoint, temperature, device,
         if model_family == 'Cifar32' or model_family == 'MNIST':
             model = load_cifar_family_model(
                 type, folder, checkpoint, device, dataset_dir, num_classes,
-                load_temp=load_temp, model_params=model_params)
+                load_temp=load_temp, model_params=model_params, is_rgb=is_rgb)
         elif model_family == 'ImageNet224':
             model = load_imagenet_family_model(
                 type, folder, checkpoint, device, dataset_dir, num_classes,
