@@ -344,7 +344,7 @@ def _inner_generation(original_imgs, perturbation_targets,
                     if verbose:
                         print('using loss', loss)
 
-                    batch_data = batch_data.to(device)
+                    batch_data = batch_data.to(device).to(torch.float)
                     batch_targets = batch_targets.to(device)
 
                     attack_config = create_attack_config(
