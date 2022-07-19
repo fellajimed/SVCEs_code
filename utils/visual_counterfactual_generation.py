@@ -299,9 +299,10 @@ def _inner_generation(original_imgs, perturbation_targets,
             type, model_folder, model_checkpoint, temperature, temp = \
                 model_descriptions[model_idx]
             if verbose:
-                print(f'{model_folder} {model_checkpoint} - bs {model_bs}')
+                print(f'model type: {type} - model checkpoint:',
+                      f'{model_checkpoint} - bs: {model_bs}')
 
-            dir = f'{eval_dir}/{model_folder}_{model_checkpoint}/' + \
+            dir = f'{eval_dir}/{type}_{model_checkpoint}/' + \
                 'VisualCounterfactuals/'
             pathlib.Path(dir).mkdir(parents=True, exist_ok=True)
 
