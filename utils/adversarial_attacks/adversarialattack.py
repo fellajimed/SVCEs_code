@@ -39,19 +39,21 @@ class AdversarialAttack():
             if self.loss.lower() in ['crossentropy', 'ce']:
                 if not targeted:
                     def l_f(data, data_out):
-                        -F.cross_entropy(data_out, y, reduction=reduction)
+                        return -F.cross_entropy(data_out, y,
+                                                reduction=reduction)
                 else:
                     def l_f(data, data_out):
-                        F.cross_entropy(data_out, y, reduction=reduction)
+                        return F.cross_entropy(data_out, y,
+                                               reduction=reduction)
             elif self.loss.lower() == 'kl':
                 if not targeted:
                     def l_f(data, data_out):
-                        -reduce(F.kl_div(
+                        return -reduce(F.kl_div(
                             torch.log_softmax(data_out, dim=1),
                             y, reduction='none').sum(dim=1), reduction)
                 else:
                     def l_f(data, data_out):
-                        reduce(F.kl_div(
+                        return reduce(F.kl_div(
                             torch.log_softmax(data_out, dim=1),
                             y, reduction='none').sum(dim=1), reduction)
             elif self.loss.lower() == 'logitsdiff':
@@ -60,47 +62,55 @@ class AdversarialAttack():
                     y_oh = y_oh.float()
 
                     def l_f(data, data_out):
-                        -logits_diff_loss(data_out, y_oh, reduction=reduction)
+                        return -logits_diff_loss(data_out, y_oh,
+                                                 reduction=reduction)
                 else:
                     y_oh = F.one_hot(y, self.num_classes)
                     y_oh = y_oh.float()
 
                     def l_f(data, data_out):
-                        logits_diff_loss(data_out, y_oh, reduction=reduction)
+                        return logits_diff_loss(data_out, y_oh,
+                                                reduction=reduction)
             elif self.loss.lower() == 'conf':
                 if not targeted:
                     def l_f(data, data_out):
-                        confidence_loss(data_out, y, reduction=reduction)
+                        return confidence_loss(data_out, y,
+                                               reduction=reduction)
                 else:
                     def l_f(data, data_out):
-                        -confidence_loss(data_out, y, reduction=reduction)
+                        return -confidence_loss(data_out, y,
+                                                reduction=reduction)
             elif self.loss.lower() == 'log_conf':
                 if not targeted:
                     def l_f(data, data_out):
-                        log_confidence_loss(data_out, y, reduction=reduction)
+                        return log_confidence_loss(data_out, y,
+                                                   reduction=reduction)
                 else:
                     def l_f(data, data_out):
-                        -log_confidence_loss(data_out, y, reduction=reduction)
+                        return -log_confidence_loss(data_out, y,
+                                                    reduction=reduction)
             elif self.loss.lower() == 'confdiff':
                 if not targeted:
                     y_oh = F.one_hot(y, self.num_classes)
                     y_oh = y_oh.float()
 
                     def l_f(data, data_out):
-                        -conf_diff_loss(data_out, y_oh, reduction=reduction)
+                        return -conf_diff_loss(data_out, y_oh,
+                                               reduction=reduction)
                 else:
                     y_oh = F.one_hot(y, self.num_classes)
                     y_oh = y_oh.float()
 
                     def l_f(data, data_out):
-                        conf_diff_loss(data_out, y_oh, reduction=reduction)
+                        return conf_diff_loss(data_out, y_oh,
+                                              reduction=reduction)
             else:
                 raise ValueError(f'Loss {self.loss} not supported')
         else:
             # custom 5 argument loss
             # (x_adv, x_adv_out, x, y, reduction)
             def l_f(data, data_out):
-                self.loss(data, data_out, x, y, reduction=reduction)
+                return self.loss(data, data_out, x, y, reduction=reduction)
 
         return l_f
 
