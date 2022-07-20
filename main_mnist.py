@@ -18,18 +18,15 @@ np.random.seed(0)
 # variables
 epochs = 5
 batch_size = 64*2
-relative_path = Path(__file__).resolve().parents[2].absolute()
-path_mnist = relative_path / 'phd-exp-mnist/data'
 dataset = 'mnist'
 
 # train and test dataloaders
-train_loader = dl.MNIST(path_mnist, train=True,
-                        batch_size=batch_size, augm_flag=True)
+train_loader = dl.MNIST(train=True, batch_size=batch_size, augm_flag=True)
 
-test_loader = dl.MNIST(path_mnist, train=False,
-                       batch_size=batch_size, augm_flag=True)
+test_loader = dl.MNIST(train=False, batch_size=batch_size, augm_flag=True)
 
 
+relative_path = Path(__file__).resolve().parents[2].absolute()
 path_saved_model = 'online_git_projects/InNOutRobustness/MNIST_models/' + \
     'ResNet18/AdvACET_19-07-2022_13:32:23'
 folder = relative_path / path_saved_model

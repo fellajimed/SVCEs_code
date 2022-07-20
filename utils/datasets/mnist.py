@@ -2,11 +2,12 @@ import torch
 import torch.distributions
 from torchvision import datasets, transforms
 
+from .paths import get_mnist_path
 DEFAULT_TRAIN_BATCHSIZE = 128
 DEFAULT_TEST_BATCHSIZE = 512
 
 
-def MNIST(path, train=True, batch_size=None, augm_flag=True, shuffle=None):
+def MNIST(train=True, batch_size=None, augm_flag=True, shuffle=None):
     if batch_size is None:
         if train:
             batch_size = DEFAULT_TRAIN_BATCHSIZE
@@ -27,6 +28,7 @@ def MNIST(path, train=True, batch_size=None, augm_flag=True, shuffle=None):
 
     transform = transform_train if (augm_flag and train) else transform_test
 
+    path = get_mnist_path()
     dataset = datasets.MNIST(path, train=train, transform=transform)
     loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
                                          shuffle=shuffle, num_workers=4)

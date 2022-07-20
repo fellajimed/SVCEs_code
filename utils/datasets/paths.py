@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 
 def get_base_data_dir():
@@ -7,7 +8,9 @@ def get_base_data_dir():
 
 
 def get_mnist_path():
-    return os.path.join(get_base_data_dir(), 'MNIST')
+    path = Path(__file__).resolve().parents[4]
+    return path / 'phd-exp-mnist/data'
+    # return os.path.join(get_base_data_dir(), 'MNIST')
 
 
 def get_svhn_path():
@@ -98,4 +101,5 @@ def get_openimages_path():
 
 
 def get_tiny_imagenet_path():
-    return os.path.join(get_base_data_dir(), 'TinyImageNet/tiny-imagenet-200/')
+    return os.path.join(get_base_data_dir(),
+                        'TinyImageNet/tiny-imagenet-200/')
