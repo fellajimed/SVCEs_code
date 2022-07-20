@@ -102,6 +102,8 @@ class WideResNet(nn.Module):
         self.activation = get_activation(activation)
         self.fc = nn.Linear(nChannels[3], num_classes)
         self.nChannels = nChannels[3]
+        # 8 for cifar, 7 for mnist
+        self.avg_pool2d_ker_size = 7 + int(is_rgb)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -119,7 +121,7 @@ class WideResNet(nn.Module):
         out = self.block2(out)
         out = self.block3(out)
         out = self.activation(self.bn1(out))
-        out = F.avg_pool2d(out, 8)
+        out = F.avg_pool2d(out, self.avg_pool2d_ker_size)
         out = out.view(-1, self.nChannels)
 
         if self.return_feature_map:
