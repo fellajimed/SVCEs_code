@@ -28,21 +28,27 @@ test_loader = dl.MNIST(train=False, batch_size=batch_size, augm_flag=True)
 
 relative_path = Path(__file__).resolve().parents[2].absolute()
 path_saved_model = 'online_git_projects/InNOutRobustness/MNIST_models/' + \
-    'ResNet18/AdvACET_19-07-2022_13:32:23'
+    'WideResNet34x10/plain_20-07-2022_15:15:43'
+    # 'ResNet18/AdvACET_19-07-2022_13:32:23'
 folder = relative_path / path_saved_model
 
 model_descriptions = [
-    ('resnet18', folder, 'best', 1, False)
+    # ('resnet18', folder, 'best', 1, False)
+    ('wideresnet34x10', folder, 'best', 1, False)
 ]
 
 img_size = 28
-in_dataset = torch.unsqueeze(test_loader.dataset.data[:10], dim=1)
-in_labels = test_loader.dataset.targets[:10]
+number_samples = 6
+indices = random.sample(range(len(test_loader.dataset)), number_samples)
+
+in_dataset = torch.unsqueeze(test_loader.dataset.data[indices], dim=1)
+in_labels = range(10)
 
 
-imgs = torch.unsqueeze(test_loader.dataset.data[:10], dim=1)
+imgs = torch.unsqueeze(test_loader.dataset.data[indices], dim=1)
 # target_list = [[t] for t in in_labels[:10]]
-target_list = [[i for i in range(10) if i != t] for t in in_labels[:10]]
+target_list = [[i for i in in_labels if i != t]
+               for t in test_loader.dataset.targets[indices]]
 filenames = None
 device_ids = None
 eval_dir = Path('')
